@@ -11,6 +11,7 @@
     const countrySelect = document.getElementById("country-select");
     const stateSelect = document.getElementById("state-select");
     const citySelect = document.getElementById("city-select");
+    const startDatetimeInput = document.getElementById("start-datetime");
 
     const fieldNames = [
         "title",
@@ -74,6 +75,24 @@
             payload?.error ||
             (!usedFieldError ? payload : "");
         setMessage(formError, summary ? formatError(summary) : "");
+    }
+
+    function formatDatetimeLocal(date) {
+        const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return localDate.toISOString().slice(0, 16);
+    }
+
+    function setMinimumStartDatetime() {
+        startDatetimeInput.min = formatDatetimeLocal(new Date());
+    }
+
+    function startDatetimeIsPast() {
+        const selectedDate = new Date(startDatetimeInput.value);
+        return (
+            startDatetimeInput.value &&
+            !Number.isNaN(selectedDate.getTime()) &&
+            selectedDate < new Date()
+        );
     }
 
     async function apiFetch(path, options = {}) {
@@ -177,6 +196,7 @@
 
         showElement(tokenWarning, false);
         showElement(formCard, true);
+        setMinimumStartDatetime();
 
         try {
             await loadCountries();
@@ -221,6 +241,16 @@
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
         resetMessages();
+        setMinimumStartDatetime();
+
+        if (startDatetimeIsPast()) {
+            setMessage(
+                document.getElementById("start_datetime-error"),
+                "Course start datetime cannot be in the past."
+            );
+            return;
+        }
+
         submitButton.disabled = true;
         submitButton.textContent = "Creating...";
 

@@ -1,6 +1,14 @@
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from .models import Course
+
+
+def validate_course_starts_in_future(start_datetime):
+    if start_datetime < timezone.now():
+        raise ValidationError(
+            {"start_datetime": "Course start datetime cannot be in the past."}
+        )
 
 
 def validate_course_time_window(start_datetime, end_datetime):

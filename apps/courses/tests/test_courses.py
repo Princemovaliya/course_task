@@ -64,6 +64,21 @@ def test_course_create_page_is_public(api_client):
     assert "sessionStorage.access_token" in content
 
 
+def test_instructor_cannot_create_course_in_the_past(api_client, instructor):
+    api_client.force_authenticate(user=instructor)
+    past_start = timezone.now() - timezone.timedelta(days=1)
+    payload = {
+        **COURSE_PAYLOAD,
+        "start_datetime": past_start.isoformat(),
+        "end_datetime": (past_start + timezone.timedelta(hours=2)).isoformat(),
+    }
+
+    response = api_client.post("/api/courses/", payload, format="json")
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "start_datetime" in response.data["detail"]
+
+
 @patch("apps.courses.serializers.validate_location", return_value=VALIDATED_LOCATION)
 def test_instructor_cannot_create_overlapping_course(mock_validate, api_client, instructor):
     existing_course = create_course(instructor)

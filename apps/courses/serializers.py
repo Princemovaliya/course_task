@@ -6,6 +6,7 @@ from apps.location.services import LocationAPIError, validate_location
 from .models import Course
 from .validators import (
     validate_capacity_not_decreased,
+    validate_course_starts_in_future,
     validate_course_time_window,
     validate_instructor_course_overlap,
 )
@@ -90,6 +91,7 @@ class CourseCreateSerializer(CourseValidationMixin, serializers.ModelSerializer)
         start = attrs.get("start_datetime")
         end = attrs.get("end_datetime")
         if start is not None and end is not None:
+            validate_course_starts_in_future(start)
             validate_course_time_window(start, end)
 
         self._validate_and_normalize_location(attrs)
