@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Course</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'course_create.css' %}">
+</head>
+<body>
+    <main class="page-shell">
+        <section class="hero">
+            <p class="eyebrow">Instructor workspace</p>
+            <h1>Create a Course</h1>
+            <p class="subtitle">
+                Choose country, state, and city from guided dropdowns. The same API validation
+                still checks the location before the course is saved.
+            </p>
+        </section>
+
+        <section id="token-warning" class="notice" hidden>
+            <h2>Access token required</h2>
+            <p>
+                This page uses the JWT access token saved in
+                <code>sessionStorage.access_token</code>. Please sign in first, then come back here.
+            </p>
+        </section>
+
+        <section id="form-card" class="card" hidden>
+            <form id="course-form">
+                <div class="form-grid">
+                    <div class="field full">
+                        <label for="title">Course title</label>
+                        <input type="text" id="title" name="title" required placeholder="Python Basics">
+                        <p class="field-error" id="title-error" hidden></p>
+                    </div>
+
+                    <div class="field full">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="4" required placeholder="Introductory Python course"></textarea>
+                        <p class="field-error" id="description-error" hidden></p>
+                    </div>
+
+                    <div class="field">
+                        <label for="max-capacity">Max capacity</label>
+                        <input type="number" id="max-capacity" name="max_capacity" min="1" required placeholder="25">
+                        <p class="field-error" id="max_capacity-error" hidden></p>
+                    </div>
+
+                    <div class="field">
+                        <label for="start-datetime">Start date and time</label>
+                        <input type="datetime-local" id="start-datetime" name="start_datetime" required>
+                        <p class="field-error" id="start_datetime-error" hidden></p>
+                    </div>
+
+                    <div class="field">
+                        <label for="end-datetime">End date and time</label>
+                        <input type="datetime-local" id="end-datetime" name="end_datetime" required>
+                        <p class="field-error" id="end_datetime-error" hidden></p>
+                    </div>
+
+                    <div class="field">
+                        <label for="country-select">Country</label>
+                        <select id="country-select" name="country" required disabled>
+                            <option value="">Loading countries...</option>
+                        </select>
+                        <p class="field-error" id="country-error" hidden></p>
+                    </div>
+
+                    <div class="field">
+                        <label for="state-select">State</label>
+                        <select id="state-select" name="state" required disabled>
+                            <option value="">Select a country first</option>
+                        </select>
+                        <p class="field-error" id="state-error" hidden></p>
+                    </div>
+
+                    <div class="field">
+                        <label for="city-select">City</label>
+                        <select id="city-select" name="city" required disabled>
+                            <option value="">Select a state first</option>
+                        </select>
+                        <p class="field-error" id="city-error" hidden></p>
+                    </div>
+                </div>
+
+                <p id="form-error" class="form-message error" hidden></p>
+                <p id="form-success" class="form-message success" hidden></p>
+
+                <div class="actions">
+                    <button type="submit" id="submit-button">Create course</button>
+                    <button type="reset" class="secondary">Clear form</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script src="{% static 'course_create.js' %}"></script>
+</body>
+</html>

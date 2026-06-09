@@ -56,6 +56,14 @@ def test_instructor_can_create_course(mock_validate, api_client, instructor):
     mock_validate.assert_called_once()
 
 
+def test_course_create_page_is_public(api_client):
+    response = api_client.get("/courses/create/")
+    assert response.status_code == status.HTTP_200_OK
+    content = response.content.decode()
+    assert "Create a Course" in content
+    assert "sessionStorage.access_token" in content
+
+
 @patch("apps.courses.serializers.validate_location", return_value=VALIDATED_LOCATION)
 def test_instructor_cannot_create_overlapping_course(mock_validate, api_client, instructor):
     existing_course = create_course(instructor)
