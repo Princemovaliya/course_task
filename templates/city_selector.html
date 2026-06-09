@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Selector</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'city_selector.css' %}">
+</head>
+<body>
+    <main class="container">
+        <h1>City Selector</h1>
+        <p class="subtitle">Select a country, state, and city. Location data is loaded from the Course Enrollment API.</p>
+
+        <section id="auth-section" class="card">
+            <h2>Sign in</h2>
+            <p class="hint">Location API endpoints require authentication. Sign in to load the dropdowns.</p>
+            <form id="login-form">
+                <label>
+                    Email
+                    <input type="email" id="login-email" required placeholder="you@example.com">
+                </label>
+                <label>
+                    Password
+                    <input type="password" id="login-password" required placeholder="Password">
+                </label>
+                <button type="submit">Sign in</button>
+            </form>
+            <p id="auth-error" class="error" hidden></p>
+        </section>
+
+        <section id="selector-section" class="card" hidden>
+            <div class="field">
+                <label for="country-select">Country</label>
+                <select id="country-select" disabled>
+                    <option value="">Loading countries...</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="state-select">State</label>
+                <select id="state-select" disabled>
+                    <option value="">Select a country first</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="city-select">City</label>
+                <select id="city-select" disabled>
+                    <option value="">Select a state first</option>
+                </select>
+            </div>
+
+            <div id="selection-display" class="selection-display" hidden>
+                <h3>Selected Location</h3>
+                <dl>
+                    <dt>Country</dt>
+                    <dd id="selected-country">—</dd>
+                    <dt>State</dt>
+                    <dd id="selected-state">—</dd>
+                    <dt>City</dt>
+                    <dd id="selected-city">—</dd>
+                </dl>
+            </div>
+        </section>
+    </main>
+
+    <script src="{% static 'city_selector.js' %}"></script>
+</body>
+</html>
