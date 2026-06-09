@@ -57,6 +57,35 @@ def test_instructor_can_create_course(mock_validate, api_client, instructor):
 
 
 @patch("apps.courses.serializers.validate_location", return_value=VALIDATED_LOCATION)
+def test_instructor_cannot_create_overlapping_course(mock_validate, api_client, instructor):
+    existing_course = create_course(instructor)
+    api_client.force_authenticate(user=instructor)
+
+    payload = {
+        **COURSE_PAYLOAD,
+        "start_datetime": existing_course.start_datetime.isoformat(),
+        "end_datetime": existing_course.end_datetime.isoformat(),
+    }
+    response = api_client.post("/api/courses/", payload, format="json")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "overlaps" in str(response.data).lower()
+
+
+@patch("apps.courses.serializers.validate_location", return_value=VALIDATED_LOCATION)
+def test_other_instructor_can_create_same_time_course(mock_validate, api_client, instructor, other_instructor):
+    existing_course = create_course(instructor)
+    api_client.force_authenticate(user=other_instructor)
+
+    payload = {
+        **COURSE_PAYLOAD,
+        "start_datetime": existing_course.start_datetime.isoformat(),
+        "end_datetime": existing_course.end_datetime.isoformat(),
+    }
+    response = api_client.post("/api/courses/", payload, format="json")
+    assert response.status_code == status.HTTP_201_CREATED
+
+
+@patch("apps.courses.serializers.validate_location", return_value=VALIDATED_LOCATION)
 def test_student_cannot_create_course(mock_validate, api_client, student):
     api_client.force_authenticate(user=student)
     response = api_client.post("/api/courses/", COURSE_PAYLOAD, format="json")
@@ -128,6 +157,86 @@ def test_course_update_writes_audit_log(mock_validate, api_client, instructor):
         format="json",
     )
     assert AuditLog.objects.filter(action=AuditLog.Action.COURSE_UPDATED).count() == 1
+
+
+def test_course_update_allows_non_locking_fields(api_client, instructor):
+    course = create_course(instructor)
+    api_client.force_authenticate(user=instructor)
+
+    response = api_client.patch(
+        f"/api/courses/{course.id}/",
+        {"title": "Updated Title"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    course.refresh_from_db()
+    assert course.title == "Updated Title"
+
+
+def test_course_update_rejects_capacity_reduction(api_client, instructor):
+    course = create_course(instructor, max_capacity=25)
+    api_client.force_authenticate(user=instructor)
+
+    response = api_client.patch(
+        f"/api/courses/{course.id}/",
+        {"max_capacity": 20},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "capacity" in str(response.data).lower()
+
+
+def test_course_update_allows_capacity_increase(api_client, instructor):
+    course = create_course(instructor, max_capacity=25)
+    api_client.force_authenticate(user=instructor)
+
+    response = api_client.patch(
+        f"/api/courses/{course.id}/",
+        {"max_capacity": 40},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    course.refresh_from_db()
+    assert course.max_capacity == 40
+
+
+def test_course_update_rejects_time_change(api_client, instructor):
+    course = create_course(instructor)
+    api_client.force_authenticate(user=instructor)
+
+    response = api_client.patch(
+        f"/api/courses/{course.id}/",
+        {
+            "start_datetime": (course.start_datetime + timezone.timedelta(hours=1)).isoformat()
+        },
+        format="json",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "cannot be changed" in str(response.data).lower()
+
+
+def test_course_update_rejects_overlap_with_same_instructor(api_client, instructor):
+    course_a = create_course(
+        instructor,
+        title="Course A",
+        start_datetime=timezone.now() + timezone.timedelta(days=5, hours=9),
+        end_datetime=timezone.now() + timezone.timedelta(days=5, hours=11),
+    )
+    create_course(
+        instructor,
+        title="Course B",
+        start_datetime=timezone.now() + timezone.timedelta(days=5, hours=10),
+        end_datetime=timezone.now() + timezone.timedelta(days=5, hours=12),
+    )
+    api_client.force_authenticate(user=instructor)
+
+    response = api_client.patch(
+        f"/api/courses/{course_a.id}/",
+        {"title": "Updated Course A"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "overlaps" in str(response.data).lower()
 
 
 def test_instructor_can_view_own_course_enrollments(api_client, instructor, student):
