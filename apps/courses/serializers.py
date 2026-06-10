@@ -47,17 +47,25 @@ class CourseCreateSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, attrs):
-        start, end = attrs.get("start_datetime"), attrs.get("end_datetime")
-        if start and end:
-            validate_course_starts_in_future(start)
-            validate_course_time_window(start, end)
-        _normalize_location(attrs)
-        validate_instructor_course_overlap(
+       start = attrs.get("start_datetime")
+       end = attrs.get("end_datetime")
+
+       if (start is None) != (end is None):
+          raise serializers.ValidationError(
+            "start_datetime and end_datetime must be provided together."
+        )
+
+       if start is not None and end is not None:
+          validate_course_starts_in_future(start)
+          validate_course_time_window(start, end)
+          validate_instructor_course_overlap(
             instructor=self.context["request"].user,
             start_datetime=start,
             end_datetime=end,
         )
-        return attrs
+
+       _normalize_location(attrs)
+       return attrs
     
     def create(self, validated_data):
         validated_data["instructor"] = self.context["request"].user
@@ -72,29 +80,19 @@ class CourseUpdateSerializer(serializers.ModelSerializer):
             "end_datetime", "country", "state", "city", "is_active",
         )
 
-    def validate(self, attrs):
-        instance = self.instance
-        start = attrs.get("start_datetime", instance.start_datetime)
-        end = attrs.get("end_datetime", instance.end_datetime)
+def validate(self, attrs):
+    instance = self.instance
 
-        validate_course_time_window(start, end)
+    if "start_datetime" in attrs or "end_datetime" in attrs:
+        raise serializers.ValidationError({
+            "start_datetime": "Course time cannot be changed after creation.",
+            "end_datetime": "Course time cannot be changed after creation.",
+        })
 
-        if "max_capacity" in attrs:
-            validate_capacity_not_decreased(instance, attrs["max_capacity"])
+    if "max_capacity" in attrs:
+        validate_capacity_not_decreased(instance, attrs["max_capacity"])
 
-        if any(attrs.get(f) not in (None, getattr(instance, f)) for f in ("start_datetime", "end_datetime")):
-            raise serializers.ValidationError({
-                "start_datetime": "Course time cannot be changed after creation.",
-                "end_datetime": "Course time cannot be changed after creation.",
-            })
+    if {"country", "state", "city"} & attrs.keys():
+        _normalize_location(attrs, instance=instance)
 
-        if {"country", "state", "city"} & attrs.keys():
-            _normalize_location(attrs, instance=instance)
-
-        validate_instructor_course_overlap(
-            instructor=instance.instructor,
-            start_datetime=start,
-            end_datetime=end,
-            exclude_course=instance,
-        )
-        return attrs
+    return attrs

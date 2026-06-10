@@ -38,11 +38,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         validate_password(value)   
         return value
 
-    def validate_role(self, value):
-        if value not in (User.Role.STUDENT, User.Role.INSTRUCTOR):
-            raise serializers.ValidationError("Role must be 'student' or 'instructor'.")
-        return value
-
     def create(self, validated_data):
         password = validated_data.pop("password")
         return User.objects.create_user(password=password, **validated_data)

@@ -1,6 +1,5 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.utils import timezone
 from rest_framework import serializers
 
 from apps.courses.models import Course
@@ -57,27 +56,25 @@ class EnrollmentCreateSerializer(serializers.Serializer):
 
     course = serializers.UUIDField()
 
-    def validate_course(self, value):
-        try:
-            course = Course.objects.get(pk=value)
-        except Course.DoesNotExist:
-            raise serializers.ValidationError("Course not found.")
-        if not course.is_active:
-            raise serializers.ValidationError("This course is no longer available.")
-        return value
-
     def create(self, validated_data):
         student = self.context["request"].user
         course_id = validated_data["course"]
 
-        # Lock the course row so capacity checks are race-safe
         try:
             with transaction.atomic():
                 course = Course.objects.select_for_update().get(pk=course_id)
+
+                if not course.is_active:
+                    raise DjangoValidationError("This course is no longer available.")
+
                 check_duplicate(student, course)
                 check_capacity(course)
                 check_schedule_conflict(student, course)
+
                 enrollment = Enrollment.objects.create(student=student, course=course)
+
+        except Course.DoesNotExist:
+            raise serializers.ValidationError({"course": "Course not found."})
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.messages)
 
