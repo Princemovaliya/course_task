@@ -10,7 +10,8 @@ from rest_framework_simplejwt.views import (
 
 from core.openapi_examples import LOGIN_EXAMPLE, LOGOUT_EXAMPLE, REGISTER_EXAMPLE
 
-from .serializers import (    CustomTokenObtainPairSerializer,
+from .serializers import (
+    CustomTokenObtainPairSerializer,
     LogoutSerializer,
     RegisterSerializer,
     UserSerializer,
@@ -41,6 +42,8 @@ class TokenRefreshView(BaseTokenRefreshView):
     permission_classes = [AllowAny]
 
 
+from rest_framework_simplejwt.exceptions import TokenError
+
 class LogoutView(generics.GenericAPIView):
     serializer_class = LogoutSerializer
     permission_classes = [IsAuthenticated]
@@ -49,12 +52,15 @@ class LogoutView(generics.GenericAPIView):
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        refresh = serializer.validated_data["refresh"]
+
         try:
-            token = RefreshToken(serializer.validated_data["refresh"])
-            token.blacklist()
-        except Exception:
+            RefreshToken(refresh).blacklist()
+        except TokenError:
             return Response(
                 {"detail": "Invalid or expired refresh token."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
         return Response(status=status.HTTP_205_RESET_CONTENT)

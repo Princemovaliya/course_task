@@ -94,15 +94,14 @@ class CourseViewSet(
         return CourseSerializer
 
     def get_permissions(self):
-        # Different roles are allowed per action. See the access matrix in the README.
-        if self.action == "list":
-            return [IsAuthenticated(), IsStudent()]
-        if self.action == "create":
-            return [IsAuthenticated(), IsInstructor()]
-        if self.action in ("partial_update", "update", "mine", "enrollments"):
-            return [IsAuthenticated(), IsInstructor()]
-        # retrieve: both students and instructors (queryset scoping differs)
-        return [IsAuthenticated()]
+       INSTRUCTOR_ACTIONS = {"create", "partial_update", "update", "mine", "enrollments"}
+    
+       if self.action == "list":
+          return [IsAuthenticated(), IsStudent()]
+       if self.action in INSTRUCTOR_ACTIONS:
+          return [IsAuthenticated(), IsInstructor()]
+       
+       return [IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
